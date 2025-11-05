@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(platformio run:*)",
+      "Bash(~/.platformio/penv/bin/platformio run:*)",
+      "Bash(~/.platformio/penv/bin/platformio device monitor:*)",
+      "Bash(test:*)"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}
