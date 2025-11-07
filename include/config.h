@@ -2,9 +2,7 @@
 #define CONFIG_H
 
 // ==================== OPERATIONAL MODE ====================
-// Choose ONE mode - these are mutually exclusive
 #define MODE_DUAL_ENGINE        true   // RF Scanner + Network Analyzer (concurrent)
-#define MODE_EMERGENCY_ROUTER   false  // Emergency Router only (exclusive)
 
 // Boot behavior
 #define AUTO_START_ON_BOOT      true   // Start engines automatically (no menu)
@@ -48,29 +46,5 @@
 
 // Log Buffer Size
 #define MAX_EVENTS_BUFFER 100
-
-// ==================== EMERGENCY ROUTER CONFIGURATION ====================
-// Upstream connection (phone hotspot)
-#define UPSTREAM_SSID "MyPhoneHotspot"      // Change to your phone's hotspot SSID
-#define UPSTREAM_PASSWORD "password123"     // Change to your phone's hotspot password
-
-// Access Point configuration
-#define AP_SSID "ESP32-EmergencyRouter"     // SSID of the ESP32's AP
-#define AP_PASSWORD "emergency2024"         // Password for ESP32's AP (min 8 chars)
-#define AP_CHANNEL 1                        // WiFi channel for AP
-#define AP_MAX_CLIENTS 4                    // Max simultaneous connections (ESP32 limit)
-
-// IP Configuration
-#define AP_IP_ADDR "192.168.4.1"            // ESP32 AP IP address
-#define AP_GATEWAY "192.168.4.1"            // Gateway (same as AP IP)
-#define AP_SUBNET "255.255.255.0"           // Subnet mask
-
-// DHCP Range
-#define DHCP_START "192.168.4.2"            // First assignable IP
-#define DHCP_END "192.168.4.20"             // Last assignable IP
-
-// DNS Configuration
-#define DNS_SERVER "8.8.8.8"                // Google DNS (fallback)
-#define DNS_PORT 53                         // Standard DNS port
 
 #endif

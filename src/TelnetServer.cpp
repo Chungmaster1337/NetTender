@@ -194,14 +194,13 @@ void TelnetServer::cmdEngines() {
     client.println("\r\n--- Available Engines ---");
     client.println("1. RF Scanner (Flipper/Marauder-like)");
     client.println("2. Network Analyzer (MITM/DNS)");
-    client.println("3. Emergency Router");
     client.println("\r\nUse 'start <id>' to launch an engine");
     client.println("---");
 }
 
 void TelnetServer::cmdStart(int engineId) {
-    if (engineId < 1 || engineId > 3) {
-        client.println("Invalid engine ID. Use 1, 2, or 3");
+    if (engineId < 1 || engineId > 2) {
+        client.println("Invalid engine ID. Use 1 or 2");
         return;
     }
 

@@ -81,7 +81,7 @@ void WebServerManager::handleRoot() {
     String html = getHTMLHeader();
 
     html += "<div class='container'>";
-    html += "<h1>ESP32 Tri-Engine Platform</h1>";
+    html += "<h1>ESP32 Dual-Engine Platform</h1>";
     html += "<div class='card'>";
     html += "<h2>System Status</h2>";
     html += "<p><strong>IP Address:</strong> " + WiFi.localIP().toString() + "</p>";
@@ -105,7 +105,6 @@ void WebServerManager::handleRoot() {
     html += "<ul>";
     html += "<li><a href='/engines?id=1'>1. RF Scanner</a></li>";
     html += "<li><a href='/engines?id=2'>2. Network Analyzer</a></li>";
-    html += "<li><a href='/engines?id=3'>3. Emergency Router</a></li>";
     html += "</ul>";
     html += "</div>";
 
@@ -213,7 +212,7 @@ void WebServerManager::handleStartEngine() {
     if (server->hasArg("engine")) {
         int engineId = server->arg("engine").toInt();
 
-        if (engineId >= 1 && engineId <= 3) {
+        if (engineId >= 1 && engineId <= 2) {
             if (engineManager != nullptr) {
                 EngineType type = (EngineType)engineId;
                 bool success = engineManager->loadEngine(type);
@@ -367,12 +366,12 @@ void WebServerManager::handleAPI() {
     html += "<h3>GET /status</h3>";
     html += "<p>System status page</p>";
 
-    html += "<h3>GET /engines?id={1-3}</h3>";
+    html += "<h3>GET /engines?id={1-2}</h3>";
     html += "<p>Engine control page</p>";
 
     html += "<h3>POST /api/start</h3>";
     html += "<p>Start an engine</p>";
-    html += "<p>Parameters: <code>engine</code> (1-3)</p>";
+    html += "<p>Parameters: <code>engine</code> (1-2)</p>";
 
     html += "<h3>POST /api/stop</h3>";
     html += "<p>Stop current engine and return to menu</p>";

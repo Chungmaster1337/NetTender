@@ -15,8 +15,7 @@ class SystemLogger;
 enum class EngineType {
     NONE = 0,
     RF_SCANNER = 1,
-    NETWORK_ANALYZER = 2,
-    EMERGENCY_ROUTER = 3
+    NETWORK_ANALYZER = 2
 };
 
 /**
@@ -95,7 +94,6 @@ private:
     // Boot and initialization
     void autoStart();
     void startDualEngineMode();
-    void startEmergencyRouterMode();
     void showBootStatus(const String& component, const String& message, bool success);
 
     // Engine management

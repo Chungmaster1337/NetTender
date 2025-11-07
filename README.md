@@ -1,6 +1,6 @@
-# NetTender
+# ESP32 Network Monitor
 
-A sophisticated ESP32-based security research platform featuring three independent operational engines for WiFi security testing, network analysis, and emergency networking. Built on ESP32 with dual-core architecture, OLED display, and comprehensive remote access capabilities.
+A sophisticated ESP32-based security research platform featuring dual concurrent engines for WiFi security testing and network analysis. Built on ESP32 with dual-core architecture, OLED display, and comprehensive remote access capabilities.
 
 ## Overview
 
@@ -8,8 +8,7 @@ This platform provides a complete security research toolkit in a portable ESP32 
 
 ### Key Features
 
-- **Tri-Engine Architecture**: Three independent operational modes
-- **Dual-Engine Concurrent Operation**: Engines 1 and 2 run simultaneously
+- **Dual-Engine Architecture**: Two engines running concurrently for comprehensive security analysis
 - **Auto-Boot to Operational**: No user input required, compile-time configuration
 - **Split-Screen OLED Display**: Real-time health status and critical logs
 - **Advanced Logging System**: 6-level classification with web dashboard export
@@ -17,11 +16,11 @@ This platform provides a complete security research toolkit in a portable ESP32 
 - **Universal Cloud Storage**: WebDAV, S3-compatible, and HTTP protocols
 - **Power-On Self Test (POST)**: Automatic hardware validation at boot
 
-## Operational Modes
+## Operational Mode
 
-### Mode 1: Dual Engine (RF Scanner + Network Analyzer)
+### Dual Engine (RF Scanner + Network Analyzer)
 
-Default operational mode running two concurrent engines for comprehensive wireless security research.
+The platform runs two concurrent engines for comprehensive wireless security research.
 
 **Engine 1: RF Scanner**
 - Passive WiFi scanning and packet capture
@@ -40,20 +39,6 @@ Default operational mode running two concurrent engines for comprehensive wirele
 - Network flow analysis and capture
 - Protocol detection and bandwidth monitoring
 - Device relationship and dependency mapping
-
-### Mode 2: Emergency Router (Exclusive)
-
-Standalone mode converting a phone hotspot into a fully functional WiFi router for emergency networking scenarios.
-
-**Features**
-- Dual WiFi mode (STA + AP)
-- Upstream connection to phone hotspot
-- Downstream WiFi access point
-- Built-in DHCP server
-- DNS forwarding
-- Client tracking and bandwidth monitoring
-- NAT/routing between interfaces
-- Connection resilience with auto-reconnect
 
 ## Hardware Requirements
 
@@ -139,7 +124,6 @@ Edit `include/config.h`:
 ```cpp
 // Dual Engine Mode: RF Scanner + Network Analyzer (concurrent)
 #define MODE_DUAL_ENGINE        true
-#define MODE_EMERGENCY_ROUTER   false
 
 // Auto-start engines at boot (no menu)
 #define AUTO_START_ON_BOOT      true
@@ -168,21 +152,6 @@ Edit `include/NetworkConfig.h` to enable/disable network services:
 // DNS and Captive Portal
 #define NET_ENABLE_DNS_SERVER       false
 #define NET_ENABLE_CAPTIVE_PORTAL   false
-```
-
-### Emergency Router Configuration
-
-Edit `src/EmergencyRouter.cpp` function `loadDefaultConfig()`:
-
-```cpp
-// Upstream (phone hotspot)
-config.upstreamSSID = "YourPhoneHotspot";
-config.upstreamPassword = "your_password";
-
-// Access Point
-config.apSSID = "ESP32-EmergencyRouter";
-config.apPassword = "emergency2024";
-config.maxClients = 4;  // ESP32 hardware limitation
 ```
 
 ## Building and Flashing
@@ -252,7 +221,6 @@ Build output:
 
 3. **Engine Auto-Start**
    - Dual Engine Mode: RF Scanner + Network Analyzer start concurrently
-   - Emergency Router Mode: Router engine starts exclusively
    - Engine registration with SystemLogger
    - Health monitoring activation
 
@@ -392,7 +360,6 @@ Compatible with: AWS S3, MinIO, Wasabi, Backblaze B2, DigitalOcean Spaces, Cloud
 - [x] Engine health monitoring
 - [x] Web dashboard with log viewer
 - [x] Telnet remote access
-- [x] Emergency router mode
 - [x] Universal cloud storage protocols
 - [x] Stub implementations for RF Scanner and Network Analyzer
 
@@ -474,11 +441,6 @@ Misuse of wireless security tools may violate computer fraud and abuse laws, una
 - Check WiFi connection status in serial monitor
 - Verify ESP32 IP address (printed at boot)
 - Ensure NET_ENABLE_HTTP_SERVER is true in NetworkConfig.h
-
-**Emergency Router not connecting to upstream**
-- Verify phone hotspot credentials in EmergencyRouter.cpp
-- Check phone hotspot is active and visible
-- Monitor serial output for connection status
 
 ## Contributing
 

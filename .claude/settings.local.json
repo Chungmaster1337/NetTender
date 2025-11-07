@@ -4,7 +4,13 @@
       "Bash(platformio run:*)",
       "Bash(~/.platformio/penv/bin/platformio run:*)",
       "Bash(~/.platformio/penv/bin/platformio device monitor:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(find:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)"
     ]
   },
   "outputStyle": "Explanatory"

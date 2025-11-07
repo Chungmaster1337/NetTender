@@ -1,4 +1,4 @@
-# ESP32 Multi-Engine Platform - Project Structure
+# ESP32 Dual-Engine Platform - Project Structure
 
 ## Pre-Build Structure
 
@@ -9,7 +9,6 @@ esp32/
 │   ├── config.h               # Operational mode configuration
 │   ├── DataUploader.h         # Data upload management (header only, no implementation)
 │   ├── DisplayManager.h       # OLED display interface (SSD1306)
-│   ├── EmergencyRouter.h      # Emergency router engine (Engine 3)
 │   ├── EngineManager.h        # Multi-engine lifecycle manager
 │   ├── NetworkAnalyzer.h      # Network analyzer engine (Engine 2)
 │   ├── NetworkConfig.h        # Network feature flags
@@ -23,7 +22,6 @@ esp32/
 ├── src/                       # Implementation files
 │   ├── CloudStorage.cpp       # Cloud storage implementation
 │   ├── DisplayManager.cpp     # OLED display rendering
-│   ├── EmergencyRouter.cpp    # Router engine implementation
 │   ├── EngineManager.cpp      # Engine management logic
 │   ├── main.cpp               # Application entry point
 │   ├── main.cpp.backup        # Backup of main.cpp
@@ -89,14 +87,13 @@ esp32/
 - Upload: /dev/ttyACM0 at 115200 baud with custom reset flags
 
 **include/config.h**
-- Operational mode selection (Dual Engine vs Emergency Router)
+- Dual Engine operational mode configuration
 - Auto-start configuration
 - Boot sequence options
 - POST (Power-On Self Test) enable/disable
 - WiFi credentials and server configuration
 - Display pin configuration (I2C: A4/A5 for Arduino Nano ESP32)
 - WiFi monitoring parameters (channel hopping, scan thresholds)
-- Emergency router configuration (upstream/downstream settings)
 
 **include/NetworkConfig.h**
 - Comprehensive network feature flags
@@ -150,12 +147,6 @@ esp32/
 - include/NetworkMonitor.h + src/NetworkMonitor.cpp
 - Modes: Passive monitor, DNS server, MITM proxy, traffic analysis, flow capture, network map
 - ARP spoofing, DNS blocking, packet inspection
-
-**Engine 3: Emergency Router**
-- include/EmergencyRouter.h + src/EmergencyRouter.cpp
-- Converts phone hotspot to WiFi router
-- Dual WiFi mode (STA + AP)
-- DHCP server, DNS forwarding, client tracking
 
 ### Network Services
 

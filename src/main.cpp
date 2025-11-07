@@ -30,13 +30,11 @@ void setup() {
     delay(1000);
 
     Serial.println("\n\n========================================");
-    Serial.println("ESP32 Tri-Engine Platform v1.0");
+    Serial.println("ESP32 Dual-Engine Platform v1.0");
     Serial.println("========================================");
 
 #if MODE_DUAL_ENGINE
     Serial.println("Mode: DUAL ENGINE (RF Scanner + Network Analyzer)");
-#elif MODE_EMERGENCY_ROUTER
-    Serial.println("Mode: EMERGENCY ROUTER");
 #else
     Serial.println("Mode: UNCONFIGURED");
 #endif

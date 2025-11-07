@@ -3,7 +3,6 @@
 #include "SystemLogger.h"
 #include "RFScanner.h"
 #include "NetworkAnalyzer.h"
-#include "EmergencyRouter.h"
 
 EngineManager::EngineManager(DisplayManager* display, SystemLogger* logger)
     : display(display), logger(logger), lastHealthCheck(0) {
@@ -112,7 +111,6 @@ EngineType EngineManager::getCurrentEngine() const {
     String name = String(first->getName());
     if (name == "RF Scanner") return EngineType::RF_SCANNER;
     if (name == "Network Analyzer") return EngineType::NETWORK_ANALYZER;
-    if (name == "Emergency Router") return EngineType::EMERGENCY_ROUTER;
 
     return EngineType::NONE;
 }
@@ -124,8 +122,6 @@ void EngineManager::autoStart() {
 
 #if MODE_DUAL_ENGINE
     startDualEngineMode();
-#elif MODE_EMERGENCY_ROUTER
-    startEmergencyRouterMode();
 #else
     if (logger) logger->error("System", "No operational mode configured", 0);
 #endif
@@ -156,17 +152,6 @@ void EngineManager::startDualEngineMode() {
     }
 }
 
-void EngineManager::startEmergencyRouterMode() {
-    if (logger) logger->info("System", "Starting EMERGENCY ROUTER mode", 1);
-    showBootStatus("Mode", "Emergency Router", true);
-
-    if (startEngine(EngineType::EMERGENCY_ROUTER)) {
-        if (logger) logger->success("System", "Emergency Router started", 3);
-    } else {
-        if (logger) logger->critical("System", "Emergency Router failed to start", 0);
-    }
-}
-
 void EngineManager::showBootStatus(const String& component, const String& message, bool success) {
 #if SHOW_BOOT_STATUS
     if (display != nullptr) {
@@ -189,9 +174,6 @@ Engine* EngineManager::createEngine(EngineType type) {
         case EngineType::NETWORK_ANALYZER:
             return new NetworkAnalyzer(display);
 
-        case EngineType::EMERGENCY_ROUTER:
-            return new EmergencyRouter(display);
-
         default:
             if (logger) logger->error("System", "Unknown engine type", 0);
             return nullptr;
@@ -209,7 +191,6 @@ bool EngineManager::startEngine(EngineType type) {
         uint8_t color = 1; // Default green
         if (type == EngineType::RF_SCANNER) color = 2; // Blue
         if (type == EngineType::NETWORK_ANALYZER) color = 1; // Green
-        if (type == EngineType::EMERGENCY_ROUTER) color = 3; // Yellow
 
         logger->registerEngine(engine->getName(), color);
     }

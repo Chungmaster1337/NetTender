@@ -35,13 +35,6 @@ public:
     void showDNSStats(uint32_t queriesHandled, uint32_t queriesBlocked, unsigned long runtime);
     void showMITMStats(uint64_t bytesProcessed, uint32_t connections, unsigned long runtime);
 
-    // Emergency Router displays
-    void showEmergencyRouterMenu(uint8_t selection);
-    void showRouterStatus(bool upstreamConnected, size_t clientCount, uint64_t bytesRouted, unsigned long uptime);
-    void showRouterConfig(const String& ssid, const String& ip, size_t clients, uint8_t maxClients);
-    void showRouterClients(size_t count);
-    void showRouterStats(uint64_t bytesRouted, uint32_t packetsRouted, unsigned long uptime);
-
     // Split-screen operational display
     void showOperationalView(SystemLogger* logger);
     void showBootSequence(const String& component, const String& message, bool success);
