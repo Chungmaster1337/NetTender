@@ -21,7 +21,21 @@ void DisplayManager::begin() {
     display->setFontDirection(0);
 
     clear();
-    showMessage("ESP32", "Network Monitor");
+
+    // Splash screen with cool font
+    display->clearBuffer();
+    display->setFont(u8g2_font_logisoso16_tf);
+
+    // Center "NetTender" on screen
+    const char* text = "NetTender";
+    int16_t textWidth = display->getStrWidth(text);
+    int16_t x = (128 - textWidth) / 2;
+    int16_t y = 28;
+
+    display->setCursor(x, y);
+    display->print(text);
+    display->sendBuffer();
+
     delay(1500);
 }
 
