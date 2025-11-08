@@ -4,14 +4,15 @@
 #include "esp_wifi_types.h"
 
 RFScanner::RFScanner(DisplayManager* display)
-    : display(display), sniffer(nullptr), currentMode(ScanMode::PASSIVE_SCAN),
-      menuPosition(0), inSubmenu(false), startTime(0), totalPackets(0),
-      totalDevices(0), targetChannel(1) {
+    : display(display), sniffer(nullptr), cmdInterface(nullptr),
+      currentMode(ScanMode::PASSIVE_SCAN), menuPosition(0), inSubmenu(false),
+      startTime(0), totalPackets(0), totalDevices(0), targetChannel(1) {
     memset(targetMAC, 0, sizeof(targetMAC));
 }
 
 RFScanner::~RFScanner() {
     stop();
+    if (cmdInterface) delete cmdInterface;
 }
 
 bool RFScanner::begin() {
@@ -27,6 +28,13 @@ bool RFScanner::begin() {
     // Initialize packet sniffer
     sniffer = new PacketSniffer();
 
+    // Initialize command interface (serial + wireless C2)
+    cmdInterface = new CommandInterface(sniffer);
+    cmdInterface->begin();
+
+    // Link command interface to packet sniffer for wireless C2
+    sniffer->setCommandInterface(cmdInterface);
+
     if (display != nullptr) {
         display->clear();
         display->showMessage("RF Scanner", "Initializing...");
@@ -40,6 +48,11 @@ bool RFScanner::begin() {
 }
 
 void RFScanner::loop() {
+    // Process serial commands
+    if (cmdInterface) {
+        cmdInterface->processSerial();
+    }
+
     if (!inSubmenu) {
         // Just show menu, wait for button input
         delay(10);

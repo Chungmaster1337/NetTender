@@ -2,7 +2,7 @@
 #include "DisplayManager.h"
 #include "SystemLogger.h"
 #include "RFScanner.h"
-#include "NetworkAnalyzer.h"
+#include <WiFi.h>
 
 EngineManager::EngineManager(DisplayManager* display, SystemLogger* logger)
     : display(display), logger(logger), lastHealthCheck(0) {
@@ -110,7 +110,6 @@ EngineType EngineManager::getCurrentEngine() const {
     // Use name comparison instead of dynamic_cast (RTTI disabled)
     String name = String(first->getName());
     if (name == "RF Scanner") return EngineType::RF_SCANNER;
-    if (name == "Network Analyzer") return EngineType::NETWORK_ANALYZER;
 
     return EngineType::NONE;
 }
@@ -128,27 +127,18 @@ void EngineManager::autoStart() {
 }
 
 void EngineManager::startDualEngineMode() {
-    if (logger) logger->info("System", "Starting engines", 1);
-    showBootStatus("Engines", "Loading", true);
+    if (logger) logger->info("System", "Starting RF Scanner", 1);
+    showBootStatus("Engine", "Loading", true);
 
-    // Start RF Scanner
+    // Start RF Scanner (single engine mode for wardriving)
     if (startEngine(EngineType::RF_SCANNER)) {
         if (logger) logger->success("System", "RF Scanner up", 2);
     } else {
         if (logger) logger->error("System", "RF Scanner fail", 0);
     }
 
-    delay(300);
-
-    // Start Network Analyzer
-    if (startEngine(EngineType::NETWORK_ANALYZER)) {
-        if (logger) logger->success("System", "Net Analyzer up", 1);
-    } else {
-        if (logger) logger->error("System", "Net Analyzer fail", 0);
-    }
-
     if (logger) {
-        logger->success("System", "Engines running", 1);
+        logger->success("System", "Sniffy ready!", 1);
     }
 }
 
@@ -170,9 +160,6 @@ Engine* EngineManager::createEngine(EngineType type) {
     switch (type) {
         case EngineType::RF_SCANNER:
             return new RFScanner(display);
-
-        case EngineType::NETWORK_ANALYZER:
-            return new NetworkAnalyzer(display);
 
         default:
             if (logger) logger->error("System", "Unknown engine type", 0);

@@ -4,6 +4,7 @@
 #include "EngineManager.h"
 #include "DisplayManager.h"
 #include "PacketSniffer.h"
+#include "CommandInterface.h"
 #include <Arduino.h>
 
 /**
@@ -36,6 +37,7 @@ public:
 private:
     DisplayManager* display;
     PacketSniffer* sniffer;
+    CommandInterface* cmdInterface;
 
     // Scanner modes
     enum class ScanMode {

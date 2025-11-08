@@ -1,6 +1,7 @@
 #include "DisplayManager.h"
 #include "SystemLogger.h"
 #include <WiFi.h>
+#include <esp_wifi.h>
 
 DisplayManager::DisplayManager(uint8_t sda_pin, uint8_t scl_pin)
     : current_mode(0), device_count(0), packet_count(0), scan_count(0), last_update(0) {
@@ -22,21 +23,26 @@ void DisplayManager::begin() {
 
     clear();
 
-    // Splash screen with cool font
+    // Splash screen: "Sniffy Boi..."
     display->clearBuffer();
-    display->setFont(u8g2_font_logisoso16_tf);
+    display->setFont(u8g2_font_logisoso20_tf);  // Large 20px font
 
-    // Center "NetTender" on screen
-    const char* text = "NetTender";
-    int16_t textWidth = display->getStrWidth(text);
-    int16_t x = (128 - textWidth) / 2;
-    int16_t y = 28;
+    // Line 1: "Sniffy"
+    const char* line1 = "Sniffy";
+    int16_t line1Width = display->getStrWidth(line1);
+    int16_t x1 = (128 - line1Width) / 2;
+    display->setCursor(x1, 15);
+    display->print(line1);
 
-    display->setCursor(x, y);
-    display->print(text);
+    // Line 2: "Boi..."
+    const char* line2 = "Boi...";
+    int16_t line2Width = display->getStrWidth(line2);
+    int16_t x2 = (128 - line2Width) / 2;
+    display->setCursor(x2, 42);
+    display->print(line2);
+
     display->sendBuffer();
-
-    delay(1500);
+    delay(2000);
 }
 
 void DisplayManager::update() {
@@ -398,7 +404,7 @@ void DisplayManager::showOperationalView(SystemLogger* logger) {
     display->print(macStr);
     y += lineHeight;
 
-    // Line 2: Uptime and IPv4
+    // Line 2: Uptime and Mode
     display->setCursor(0, y);
     unsigned long uptimeSec = millis() / 1000;
     uint8_t hours = (uptimeSec / 3600) % 24;
@@ -409,41 +415,26 @@ void DisplayManager::showOperationalView(SystemLogger* logger) {
     display->print("UP:");
     display->print(uptimeStr);
 
-    display->print(" IP:");
-    if (WiFi.status() == WL_CONNECTED) {
-        display->print(WiFi.localIP().toString());
-    } else {
-        display->print("---");
-    }
+    // Show wardriving mode instead of IP
+    display->print(" MODE:WARDRIVE");
     y += lineHeight;
 
-    // Line 3: Gateway and Subnet
+    // Line 3: Memory and Channel
     display->setCursor(0, y);
-    display->print("GW:");
-    if (WiFi.status() == WL_CONNECTED) {
-        display->print(WiFi.gatewayIP().toString());
-    } else {
-        display->print("---");
-    }
+    display->print("MEM:");
+    display->print(ESP.getFreeHeap() / 1024);
+    display->print("KB");
 
-    display->print(" SN:");
-    if (WiFi.status() == WL_CONNECTED) {
-        display->print(WiFi.subnetMask().toString());
-    } else {
-        display->print("---");
-    }
+    display->print(" CH:");
+    uint8_t channel;
+    wifi_second_chan_t second;
+    esp_wifi_get_channel(&channel, &second);
+    display->print(channel);
     y += lineHeight;
 
-    // Line 4: SSID
+    // Line 4: Attack capabilities
     display->setCursor(0, y);
-    display->print("SSID:");
-    if (WiFi.status() == WL_CONNECTED) {
-        String ssid = WiFi.SSID();
-        if (ssid.length() > 21) ssid = ssid.substring(0, 21);
-        display->print(ssid);
-    } else {
-        display->print("DISCONNECTED");
-    }
+    display->print("ATTACKS: HS|PMKID|DEAUTH");
     y += lineHeight;
 
     // Line 5: Log status and path

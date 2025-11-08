@@ -9,16 +9,10 @@
 #define SHOW_BOOT_STATUS        true   // Display boot status log on OLED
 #define BOOT_HEALTH_CHECK       true   // Perform POST (Power-On Self Test)
 
-// WiFi Configuration
-#define WIFI_SSID "CenturyLink2121"
-#define WIFI_PASSWORD "ic7iu9iq3gc6iu"
-
-// HTTPS Server Configuration
-#define SERVER_URL "https://your-server.com/api"
-#define AUTH_TOKEN "your-auth-token"
-
-// Upload interval (milliseconds)
-#define UPLOAD_INTERVAL 30000  // 30 seconds
+// ==================== WARDRIVING MODE ====================
+// NOTE: Sniffy Boi operates in WiFi MONITOR mode (promiscuous)
+// NO network connection is established - this is intentional!
+// WiFi hardware is initialized for packet capture only
 
 // Display Configuration (I2C pins)
 // Arduino Nano ESP32 uses A4/A5 for I2C (Arduino Uno compatibility)
