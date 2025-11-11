@@ -173,6 +173,7 @@ public:
     uint32_t getDataCount();
     uint32_t getDeauthCount();
     uint32_t getHandshakeCount();
+    uint8_t getCurrentChannel();
 
     // Get captured handshakes
     const std::vector<HandshakeInfo>& getHandshakes();

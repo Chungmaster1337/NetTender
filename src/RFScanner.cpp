@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
+#include "config.h"
 
 RFScanner::RFScanner(DisplayManager* display, SystemLogger* logger)
     : display(display), logger(logger), sniffer(nullptr), cmdInterface(nullptr),
@@ -184,10 +185,31 @@ void RFScanner::handleModeSelection() {
 }
 
 void RFScanner::runPassiveScan() {
-    // Placeholder: Passive WiFi scanning
+    // Passive WiFi scanning with channel hopping support
     if (sniffer != nullptr) {
         totalPackets = sniffer->getTotalPackets();
         totalDevices = sniffer->getDevices().size();
+
+        // Implement channel hopping if enabled in ledger
+        if (cmdInterface != nullptr) {
+            CommandLedger* ledger = cmdInterface->getLedger();
+            if (ledger != nullptr && ledger->isHoppingEnabled()) {
+                // Check if it's time to hop
+                static unsigned long lastHopTime = 0;
+                unsigned long now = millis();
+
+                if (now - lastHopTime >= CHANNEL_HOP_INTERVAL) {
+                    // Perform channel hop
+                    sniffer->channelHop(true);
+
+                    // Update ledger with new channel
+                    uint8_t newChannel = sniffer->getCurrentChannel();
+                    ledger->setChannel(newChannel);
+
+                    lastHopTime = now;
+                }
+            }
+        }
     }
     delay(100);
 }

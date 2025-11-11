@@ -100,6 +100,10 @@ uint32_t PacketSniffer::getHandshakeCount() {
     return handshakes.size();
 }
 
+uint8_t PacketSniffer::getCurrentChannel() {
+    return current_channel;
+}
+
 std::map<String, DeviceStats>& PacketSniffer::getDevices() {
     return devices;
 }

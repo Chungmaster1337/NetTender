@@ -4,6 +4,31 @@ This folder contains utility files and testing tools that support the Sniffy Boi
 
 ## 📁 Contents
 
+### **beacon_broadcaster/**
+WiFi Testing Module - Python-based beacon broadcaster for testing ESP32 packet sniffing
+
+**Purpose:**
+- Broadcast WiFi beacon frames to test Sniffy's detection capabilities
+- Three test modes: simple, flood (unique MACs), integrated (with serial monitoring)
+- Monitor ESP32 serial output in real-time
+
+**Quick Start:**
+```bash
+cd beacon_broadcaster
+./install.sh                                # One-time setup
+sudo ./monitor_mode.sh wlp0s20f3 setup      # Enable monitor mode
+sudo python3 sniffy_tester.py -s "TestAP" -i wlp0s20f3 --monitor
+```
+
+**Test Modes:**
+- **Simple:** Continuous broadcast with single MAC
+- **Flood:** 20 beacons with unique MACs (triggers [NEW DEVICE] on ESP32)
+- **Integrated:** Broadcast + live ESP32 serial monitoring
+
+See `beacon_broadcaster/README.md` for full documentation.
+
+---
+
 ### **sniffy_ios_control.html**
 iOS-optimized wireless command interface (web app)
 
