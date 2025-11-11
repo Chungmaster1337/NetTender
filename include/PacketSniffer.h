@@ -186,6 +186,13 @@ public:
     void sendDeauthBroadcast(const uint8_t* ap_mac, uint8_t reason = DEAUTH_REASON_UNSPECIFIED);
     void triggerHandshake(const uint8_t* ap_mac, const uint8_t* client_mac, uint8_t burst_count = 5);
 
+    // Beacon flood attack (AUTHORIZED USE ONLY - Research/CTF)
+    void startBeaconFlood(uint8_t channel = 1);
+    void stopBeaconFlood();
+    bool isBeaconFloodActive();
+    void setBeaconFloodSSIDs(const std::vector<String>& ssids);
+    void beaconFloodLoop();  // Call from main loop when active
+
 private:
     static std::map<String, DeviceStats> devices;
     static std::vector<HandshakeInfo> handshakes;
@@ -218,9 +225,21 @@ private:
     // Deauth attack helpers
     static void buildDeauthFrame(uint8_t* frame, const uint8_t* dest, const uint8_t* src, const uint8_t* bssid, uint8_t reason);
 
+    // Beacon flood helpers
+    static void buildBeaconFrame(uint8_t* frame, const String& ssid, uint8_t channel, const uint8_t* mac);
+    static void sendBeaconFrame(const String& ssid, uint8_t channel);
+
     // Attack tracking (prevent abuse)
     static unsigned long last_deauth_time;
     static const uint32_t DEAUTH_RATE_LIMIT_MS = 100;  // Min 100ms between attacks
+
+    // Beacon flood state
+    static bool beacon_flood_active;
+    static std::vector<String> beacon_ssids;
+    static uint8_t beacon_flood_channel;
+    static unsigned long last_beacon_time;
+    static uint32_t beacon_interval_us;  // Microseconds between beacons
+    static uint32_t beacons_sent;
 };
 
 #endif

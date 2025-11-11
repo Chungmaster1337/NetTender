@@ -86,6 +86,13 @@ public:
      */
     EngineType getCurrentEngine() const;
 
+    /**
+     * @brief Get first active engine pointer (for display state checking)
+     */
+    Engine* getActiveEngine() const {
+        return activeEngines.empty() ? nullptr : activeEngines[0];
+    }
+
 private:
     DisplayManager* display;
     SystemLogger* logger;

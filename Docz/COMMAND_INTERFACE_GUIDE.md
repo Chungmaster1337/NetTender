@@ -346,3 +346,39 @@ The magic prefix `SNIFFY:` prevents accidental triggers, but intentional command
 6. Watch Sniffy Boi execute it!
 
 **Ready to hack? Sniffy Boi is waiting for your commands!** 🎯
+
+---
+
+
+---
+
+## 🎯 Interactive State Machine (Implemented)
+
+The wireless command interface now includes an interactive state machine with visual OLED feedback.
+
+**Key Features:**
+- **MAC-based session authentication** - Only the device that started a command can continue it
+- **Dual progress indicators** - Session timeout (120s) + operation progress (0-100%)
+- **Smart auto-management** - Auto-locks channel during attacks, enables hopping during scans
+- **Error persistence** - Errors written to `command.ledger`, displayed on startup after reset
+- **Different cooldown patterns**:
+  - Attack/Scan operations: 60s with results
+  - Config changes: 10s OLD/NEW comparison
+
+**OLED Display During Commands:**
+```
+SCANNING
+Timeout: 118s
+Progress: 45%
+[=====>      ]
+```
+
+**For detailed technical documentation, see `INTERACTIVE_COMMAND_FLOW.md`**
+
+---
+
+## 📚 Related Documentation
+
+- **`INTERACTIVE_COMMAND_FLOW.md`** - Technical design, state machine diagrams, implementation details
+- **`CLAUDE.md`** - Project overview and development guidelines
+

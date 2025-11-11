@@ -30,6 +30,11 @@
 #define CHANNEL_HOP_INTERVAL 1000  // ms between channel hops
 #define ENABLE_CHANNEL_HOPPING true
 
+// Beacon Flood Attack Configuration (AUTHORIZED USE ONLY)
+#define BEACON_FLOOD_INTERVAL_US 1000  // microseconds between beacons (1000 = 1ms = 1000 beacons/sec)
+#define BEACON_FLOOD_DEFAULT_CHANNEL 6  // default channel for beacon flooding
+#define BEACON_FLOOD_SSID_COUNT 50      // number of fake SSIDs to cycle through
+
 // Scan Detection Thresholds
 #define SCAN_THRESHOLD_PACKETS 50     // packets per second to trigger scan alert
 #define SCAN_THRESHOLD_TIME 1000      // time window in ms

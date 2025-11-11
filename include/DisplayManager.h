@@ -42,6 +42,16 @@ public:
     // WiFi connection status display
     void showWiFiStatus(const String& status, const String& detail = "", int progress = -1);
 
+    // Interactive command interface displays
+    void showCommandExecuting(const String& command, int timeout_remaining, int progress_percent);
+    void showCommandResult(const String& command, bool success, const String& message, int items_found = 0);
+    void showConfigComparison(const String& setting, const String& old_value, const String& new_value, int countdown);
+    void showCooldownResults(const String& title, const std::vector<String>& results, int countdown);
+    void showErrorMessage(const String& error, const String& detail, int countdown);
+    void showAwaitingValue(const String& setting, const String& current_value, const String& valid_range);
+    void showSessionLocked(const uint8_t* authorized_mac);
+    void showCommandMenu();
+
     // Screen management
     void clear();
     void setMode(uint8_t mode);  // 0=log, 1=stats, 2=alerts

@@ -3,8 +3,8 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 
-RFScanner::RFScanner(DisplayManager* display)
-    : display(display), sniffer(nullptr), cmdInterface(nullptr),
+RFScanner::RFScanner(DisplayManager* display, SystemLogger* logger)
+    : display(display), logger(logger), sniffer(nullptr), cmdInterface(nullptr),
       currentMode(ScanMode::PASSIVE_SCAN), menuPosition(0), inSubmenu(false),
       startTime(0), totalPackets(0), totalDevices(0), targetChannel(1) {
     memset(targetMAC, 0, sizeof(targetMAC));
@@ -29,11 +29,16 @@ bool RFScanner::begin() {
     sniffer = new PacketSniffer();
 
     // Initialize command interface (serial + wireless C2)
-    cmdInterface = new CommandInterface(sniffer);
+    cmdInterface = new CommandInterface(sniffer, display, logger);
     cmdInterface->begin();
 
     // Link command interface to packet sniffer for wireless C2
     sniffer->setCommandInterface(cmdInterface);
+
+    // Start sniffer immediately for wireless command capture
+    // (This enables promiscuous mode so we can receive SNIFFY:CMD probes)
+    Serial.println("[RFScanner] Starting packet sniffer for wireless C2...");
+    sniffer->begin();
 
     if (display != nullptr) {
         display->clear();
@@ -48,9 +53,15 @@ bool RFScanner::begin() {
 }
 
 void RFScanner::loop() {
-    // Process serial commands
+    // Process command interface (serial + wireless + state machine timeouts)
     if (cmdInterface) {
         cmdInterface->processSerial();
+        cmdInterface->loop();  // Handle timeouts and display updates
+    }
+
+    // Run beacon flood if active (command-driven)
+    if (sniffer && sniffer->isBeaconFloodActive()) {
+        sniffer->beaconFloodLoop();
     }
 
     if (!inSubmenu) {
@@ -159,10 +170,9 @@ void RFScanner::handleModeSelection() {
     // Start the selected mode
     switch (currentMode) {
         case ScanMode::PASSIVE_SCAN:
-            Serial.println("[RFScanner] Starting Passive Scan...");
-            if (sniffer != nullptr) {
-                sniffer->begin();
-            }
+            Serial.println("[RFScanner] Entering Passive Scan mode...");
+            // Sniffer already running from begin() - no need to restart
+            Serial.println("[RFScanner] Sniffer already active for wireless C2");
             break;
 
         default:

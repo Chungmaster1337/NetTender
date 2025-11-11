@@ -159,7 +159,7 @@ void EngineManager::showBootStatus(const String& component, const String& messag
 Engine* EngineManager::createEngine(EngineType type) {
     switch (type) {
         case EngineType::RF_SCANNER:
-            return new RFScanner(display);
+            return new RFScanner(display, logger);
 
         default:
             if (logger) logger->error("System", "Unknown engine type", 0);

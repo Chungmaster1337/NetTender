@@ -631,3 +631,300 @@ void DisplayManager::drawAlertMode() {
 
     display->sendBuffer();
 }
+
+// ==================== Interactive Command Interface Displays ====================
+
+void DisplayManager::showCommandExecuting(const String& command, int timeout_remaining, int progress_percent) {
+    display->clearBuffer();
+
+    // Title (large font)
+    display->setFont(u8g2_font_9x15_tf);
+    const char* title = command.c_str();
+    int16_t titleWidth = display->getStrWidth(title);
+    int16_t titleX = (128 - titleWidth) / 2;
+    display->setCursor(titleX, 2);
+    display->print(title);
+
+    // Line under title
+    display->drawLine(0, 18, 128, 18);
+
+    // Session timeout countdown (top right)
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 22);
+    display->print("Timeout: ");
+    display->print(timeout_remaining);
+    display->print("s");
+
+    // Progress bar for operation (0-100%)
+    display->setCursor(0, 35);
+    display->print("Progress: ");
+    display->print(progress_percent);
+    display->print("%");
+
+    // Visual progress bar
+    int barWidth = 120;
+    int barX = 4;
+    int barY = 48;
+    int barHeight = 12;
+
+    // Draw progress bar background
+    display->drawFrame(barX, barY, barWidth, barHeight);
+
+    // Fill progress
+    int fillWidth = (barWidth - 2) * progress_percent / 100;
+    if (fillWidth > 0) {
+        display->drawBox(barX + 1, barY + 1, fillWidth, barHeight - 2);
+    }
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showCommandResult(const String& command, bool success, const String& message, int items_found) {
+    display->clearBuffer();
+
+    // Success/Failure indicator (large)
+    display->setFont(u8g2_font_9x15_tf);
+    const char* status = success ? "SUCCESS" : "FAILED";
+    int16_t statusWidth = display->getStrWidth(status);
+    int16_t statusX = (128 - statusWidth) / 2;
+    display->setCursor(statusX, 2);
+    display->print(status);
+
+    // Command name
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 20);
+    display->print("Cmd: ");
+    display->print(command);
+
+    // Message
+    display->setCursor(0, 32);
+    display->print(message);
+
+    // Items found (if applicable)
+    if (items_found > 0) {
+        display->setCursor(0, 44);
+        display->print("Found: ");
+        display->print(items_found);
+        display->print(" items");
+    }
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showConfigComparison(const String& setting, const String& old_value, const String& new_value, int countdown) {
+    display->clearBuffer();
+
+    // Title
+    display->setFont(u8g2_font_9x15_tf);
+    const char* title = setting.c_str();
+    int16_t titleWidth = display->getStrWidth(title);
+    int16_t titleX = (128 - titleWidth) / 2;
+    display->setCursor(titleX, 2);
+    display->print(title);
+
+    display->drawLine(0, 18, 128, 18);
+
+    // OLD value
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 24);
+    display->print("OLD: ");
+    display->print(old_value);
+
+    // NEW value (highlighted)
+    display->setCursor(0, 38);
+    display->print("NEW: ");
+    display->setFont(u8g2_font_9x15_tf);
+    display->print(new_value);
+
+    // Countdown
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 55);
+    display->print("Returning in ");
+    display->print(countdown);
+    display->print("s");
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showCooldownResults(const String& title, const std::vector<String>& results, int countdown) {
+    display->clearBuffer();
+
+    // Title
+    display->setFont(u8g2_font_7x13_tf);
+    display->setCursor(0, 0);
+    display->print(title);
+
+    display->drawLine(0, 12, 128, 12);
+
+    // Results (up to 3 lines)
+    display->setFont(u8g2_font_6x10_tf);
+    int y = 16;
+    int max_lines = 3;
+    for (int i = 0; i < results.size() && i < max_lines; i++) {
+        display->setCursor(0, y);
+        display->print(results[i]);
+        y += 10;
+    }
+
+    if (results.size() > max_lines) {
+        display->setCursor(0, y);
+        display->print("... ");
+        display->print(results.size() - max_lines);
+        display->print(" more");
+    }
+
+    // Cooldown countdown at bottom
+    display->drawLine(0, 50, 128, 50);
+    display->setCursor(0, 54);
+    display->print("Cooldown: ");
+    display->print(countdown);
+    display->print("s");
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showErrorMessage(const String& error, const String& detail, int countdown) {
+    display->clearBuffer();
+
+    // ERROR header (large, centered)
+    display->setFont(u8g2_font_9x15_tf);
+    const char* errText = "ERROR";
+    int16_t errWidth = display->getStrWidth(errText);
+    int16_t errX = (128 - errWidth) / 2;
+    display->setCursor(errX, 2);
+    display->print(errText);
+
+    display->drawLine(0, 18, 128, 18);
+
+    // Error type
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 24);
+    display->print(error);
+
+    // Detail (word wrap if needed)
+    display->setCursor(0, 36);
+    if (detail.length() > 21) {
+        display->print(detail.substring(0, 21));
+        display->setCursor(0, 46);
+        display->print(detail.substring(21));
+    } else {
+        display->print(detail);
+    }
+
+    // Countdown
+    display->drawLine(0, 50, 128, 50);
+    display->setCursor(0, 54);
+    display->print("Reset in ");
+    display->print(countdown);
+    display->print("s");
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showAwaitingValue(const String& setting, const String& current_value, const String& valid_range) {
+    display->clearBuffer();
+
+    // Title
+    display->setFont(u8g2_font_9x15_tf);
+    const char* title = setting.c_str();
+    int16_t titleWidth = display->getStrWidth(title);
+    int16_t titleX = (128 - titleWidth) / 2;
+    display->setCursor(titleX, 2);
+    display->print(title);
+
+    display->drawLine(0, 18, 128, 18);
+
+    // Current value
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 24);
+    display->print("Current: ");
+    display->print(current_value);
+
+    // Valid range
+    display->setCursor(0, 36);
+    display->print("Valid: ");
+    display->print(valid_range);
+
+    // Instructions
+    display->setCursor(0, 50);
+    display->print("Send new value");
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showSessionLocked(const uint8_t* authorized_mac) {
+    display->clearBuffer();
+
+    // Warning header
+    display->setFont(u8g2_font_9x15_tf);
+    const char* warning = "LOCKED";
+    int16_t warnWidth = display->getStrWidth(warning);
+    int16_t warnX = (128 - warnWidth) / 2;
+    display->setCursor(warnX, 2);
+    display->print(warning);
+
+    display->drawLine(0, 18, 128, 18);
+
+    // Message
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 24);
+    display->print("Session active");
+
+    display->setCursor(0, 36);
+    display->print("Authorized MAC:");
+
+    // MAC address
+    char mac_str[18];
+    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+             authorized_mac[0], authorized_mac[1], authorized_mac[2],
+             authorized_mac[3], authorized_mac[4], authorized_mac[5]);
+    display->setCursor(0, 48);
+    display->print(mac_str);
+
+    display->sendBuffer();
+}
+
+void DisplayManager::showCommandMenu() {
+    display->clearBuffer();
+
+    // Header with blinking prompt
+    display->setFont(u8g2_font_6x10_tf);
+    display->setCursor(0, 0);
+    display->print("SNIFFY:COMMAND");
+
+    // Show blinking cursor effect (blink every 500ms)
+    if ((millis() / 500) % 2 == 0) {
+        display->print("_");
+    }
+
+    display->drawLine(0, 12, 128, 12);
+
+    // Available commands (line by line)
+    int y = 16;
+    const int lineHeight = 9;  // Reduced from 10 to fit more
+
+    display->setCursor(0, y);
+    display->print("SCAN - Scan APs");
+    y += lineHeight;
+
+    display->setCursor(0, y);
+    display->print("ATTACK <MAC> - Deauth");
+    y += lineHeight;
+
+    display->setCursor(0, y);
+    display->print("PMKID <MAC> - PMKID");
+    y += lineHeight;
+
+    display->setCursor(0, y);
+    display->print("BEACON [CH] - Flood");
+    y += lineHeight;
+
+    display->setCursor(0, y);
+    display->print("CHANNEL [N] - Ch cfg");
+    y += lineHeight;
+
+    display->setCursor(0, y);
+    display->print("HOPPING [ON/OFF]");
+
+    display->sendBuffer();
+}

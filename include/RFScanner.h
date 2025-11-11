@@ -5,6 +5,7 @@
 #include "DisplayManager.h"
 #include "PacketSniffer.h"
 #include "CommandInterface.h"
+#include "SystemLogger.h"
 #include <Arduino.h>
 
 /**
@@ -24,7 +25,7 @@
  */
 class RFScanner : public Engine {
 public:
-    RFScanner(DisplayManager* display);
+    RFScanner(DisplayManager* display, SystemLogger* logger);
     ~RFScanner();
 
     // Engine interface implementation
@@ -34,8 +35,12 @@ public:
     const char* getName() override { return "RF Scanner"; }
     void handleButton(uint8_t button) override;
 
+    // Access to command interface for display state
+    CommandInterface* getCommandInterface() { return cmdInterface; }
+
 private:
     DisplayManager* display;
+    SystemLogger* logger;
     PacketSniffer* sniffer;
     CommandInterface* cmdInterface;
 

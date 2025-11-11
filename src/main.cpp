@@ -3,6 +3,9 @@
 #include "DisplayManager.h"
 #include "EngineManager.h"
 #include "SystemLogger.h"
+#include "RFScanner.h"
+#include "CommandInterface.h"
+#include "CommandLedger.h"
 #include "config.h"
 
 // Global objects
@@ -76,11 +79,31 @@ void loop() {
         engineManager->loop();
     }
 
-    // Update operational display every second
+    // Update display every second
     static unsigned long lastDisplayUpdate = 0;
     if (millis() - lastDisplayUpdate > 1000) {
         if (display != nullptr && logger != nullptr) {
-            display->showOperationalView(logger);
+            // Get RFScanner to check command state
+            Engine* activeEngine = engineManager->getActiveEngine();
+            RFScanner* rfScanner = static_cast<RFScanner*>(activeEngine);
+
+            if (rfScanner != nullptr) {
+                CommandInterface* cmdInterface = rfScanner->getCommandInterface();
+                if (cmdInterface != nullptr) {
+                    CommandLedger* ledger = cmdInterface->getLedger();
+                    if (ledger != nullptr && ledger->getState() == CommandState::IDLE) {
+                        // Show command menu when in IDLE state
+                        display->showCommandMenu();
+                    } else {
+                        // Show operational view for all other states
+                        display->showOperationalView(logger);
+                    }
+                } else {
+                    display->showOperationalView(logger);
+                }
+            } else {
+                display->showOperationalView(logger);
+            }
         }
         lastDisplayUpdate = millis();
     }

@@ -2,41 +2,30 @@
 #define COMMAND_INTERFACE_H
 
 #include <Arduino.h>
-#include <vector>
 #include "PacketSniffer.h"
+#include "CommandLedger.h"
+#include "DisplayManager.h"
+#include "SystemLogger.h"
 
 /**
- * Dual Command Interface for Sniffy Boi
+ * CommandInterface V2 - Interactive State Machine
  *
- * Supports TWO control methods:
- * 1. Serial CLI - Type commands over USB (development/debug)
- * 2. Wireless C2 - Send WiFi probe requests with magic SSIDs (field ops)
- *
- * Wireless Command Format:
- * SSID: "SNIFFY:<CMD>:<PARAMS>"
- *
- * Examples:
- *   SNIFFY:SCAN                   - List discovered APs
- *   SNIFFY:ATTACK:AABBCCDDEEFF    - Deauth attack on MAC
- *   SNIFFY:PMKID:001122334455     - Clientless PMKID attack
- *   SNIFFY:EXPORT                 - Print all hashcat hashes
- *   SNIFFY:STATUS                 - Show capture stats
- *   SNIFFY:CHANNEL:6              - Lock to channel 6
- *   SNIFFY:HOPPING:ON             - Enable channel hopping
- *
- * Security Note: Magic SSID prefix prevents accidental triggers
+ * Multi-step command flows with MAC-based session authentication.
+ * Uses CommandLedger for persistent state and DisplayManager for visual feedback.
  */
 
 enum class CommandType {
-    SCAN,           // List discovered APs
-    ATTACK,         // Deauth attack + handshake capture
-    PMKID,          // Clientless PMKID attack
-    EXPORT,         // Export all captures to hashcat format
-    STATUS,         // Show statistics
-    CHANNEL,        // Set specific channel
-    HOPPING,        // Enable/disable channel hopping
-    CLEAR,          // Clear capture database
-    HELP,           // Show available commands
+    SCAN,           // Scan for APs
+    ATTACK,         // Deauth attack
+    PMKID,          // PMKID attack
+    CHANNEL,        // Set/query channel
+    HOPPING,        // Toggle hopping
+    BEACON,         // Beacon flood attack
+    STATUS,         // Show status
+    EXPORT,         // Export captures
+    CONFIRM,        // Confirm pending operation
+    CANCEL,         // Cancel/abort
+    HELP,           // Show help
     UNKNOWN
 };
 
@@ -44,76 +33,109 @@ struct Command {
     CommandType type;
     String param1;
     String param2;
-    bool is_wireless;  // True if received via magic packet
-    uint8_t source_mac[6];  // MAC of device that sent command
+    bool is_wireless;
+    uint8_t source_mac[6];
 };
 
 class CommandInterface {
 public:
-    CommandInterface(PacketSniffer* sniffer);
+    CommandInterface(PacketSniffer* sniffer, DisplayManager* display, SystemLogger* logger);
 
     /**
-     * @brief Initialize command interface
+     * @brief Initialize command interface and ledger
      */
     void begin();
 
     /**
+     * @brief Main loop - handles timeouts and display updates
+     * MUST be called frequently from main loop
+     */
+    void loop();
+
+    /**
      * @brief Process serial input (USB commands)
-     * Call this in main loop
      */
     void processSerial();
 
     /**
      * @brief Process wireless magic packet (called by PacketSniffer)
-     * @param ssid SSID from probe request or beacon
-     * @param source_mac MAC address of sender
      */
     void processWirelessCommand(const String& ssid, const uint8_t* source_mac);
 
     /**
      * @brief Check if SSID is a magic command packet
-     * @return true if SSID starts with "SNIFFY:"
      */
     static bool isMagicPacket(const String& ssid);
 
     /**
-     * @brief Show command prompt
+     * @brief Get command ledger for state inspection
      */
-    void showPrompt();
+    CommandLedger* getLedger() { return ledger; }
 
 private:
     PacketSniffer* sniffer;
+    DisplayManager* display;
+    SystemLogger* logger;
+    CommandLedger* ledger;
+
     String serial_buffer;
     unsigned long last_prompt_time;
+    unsigned long last_display_update;
 
-    /**
-     * @brief Parse command string (from serial or SSID)
-     * @param input Command string
-     * @param is_wireless True if from WiFi packet
-     * @param source_mac MAC of sender (wireless only)
-     * @return Parsed command structure
-     */
-    Command parseCommand(const String& input, bool is_wireless = false, const uint8_t* source_mac = nullptr);
+    // Parsing
+    Command parseCommand(const String& input, bool is_wireless, const uint8_t* source_mac);
 
-    /**
-     * @brief Execute parsed command
-     */
+    // Command routing based on state
+    void processCommand(const Command& cmd);
+
+    // Validation
+    bool validateSession(const uint8_t* source_mac);
+    bool validateTarget(const uint8_t* target_mac, APInfo& out_info);
+    bool validateChannel(int channel);
+
+    // State transitions
     void executeCommand(const Command& cmd);
 
-    // Command handlers
-    void handleScan();
-    void handleAttack(const String& target_mac);
-    void handlePMKID(const String& target_mac);
-    void handleExport();
-    void handleStatus();
-    void handleChannel(const String& channel_str);
-    void handleHopping(const String& state);
-    void handleClear();
-    void handleHelp();
+    // Command handlers (from IDLE state)
+    void handleScan(const Command& cmd);
+    void handleAttack(const Command& cmd);
+    void handlePMKID(const Command& cmd);
+    void handleChannel(const Command& cmd);
+    void handleHopping(const Command& cmd);
+    void handleBeacon(const Command& cmd);
+    void handleStatus(const Command& cmd);
+    void handleExport(const Command& cmd);
+
+    // State-specific handlers
+    void handleAwaitingChannelValue(const Command& cmd);
+    void handleAwaitingHoppingValue(const Command& cmd);
+
+    // Operation executors
+    void executeScan();
+    void executeAttack(const uint8_t* target_mac);
+    void executePMKID(const uint8_t* target_mac);
+    void executeChannelChange(int channel);
+    void executeHoppingToggle(bool enable);
+
+    // Completion handlers
+    void onScanComplete(int ap_count);
+    void onAttackComplete(bool success, const String& message);
+    void onPMKIDComplete(bool success, const String& message);
+    void onConfigChange(const String& setting, const String& old_val, const String& new_val);
+
+    // Error handling
+    void showError(const String& error, const String& detail);
+    void handleSessionTimeout();
+    void handleStateTimeout();
+
+    // Display updates
+    void updateDisplay();
 
     // Helper functions
     bool parseMACAddress(const String& mac_str, uint8_t* mac_out);
     void printMACAddress(const uint8_t* mac);
+    String macToString(const uint8_t* mac);
+    void showPrompt();
 };
 
 #endif // COMMAND_INTERFACE_H
