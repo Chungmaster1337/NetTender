@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include "version.h"
 #include "DisplayManager.h"
 #include "EngineManager.h"
 #include "SystemLogger.h"
@@ -24,19 +25,8 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("\n\n");
-    Serial.println("╔════════════════════════════════════════════════════════════╗");
-    Serial.println("║                   SNIFFY BOI v1.0                        ║");
-    Serial.println("║              Wardriving & WPA2 Attack Platform           ║");
-    Serial.println("╚════════════════════════════════════════════════════════════╝");
-    Serial.println();
-    Serial.println("  Mode:        Monitor (Standalone)");
-    Serial.println("  Attacks:     Handshake | PMKID | Deauth");
-    Serial.println("  Output:      Hashcat mode 22000");
-    Serial.println("  Network:     DISCONNECTED (no AP connection required)");
-    Serial.println();
-    Serial.println("════════════════════════════════════════════════════════════");
-    Serial.println();
+    // Print version information
+    printVersionInfo();
 
     // Initialize display
     Serial.println("[Main] Initializing display...");

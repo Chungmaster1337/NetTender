@@ -1,10 +1,11 @@
 #include "DisplayManager.h"
 #include "SystemLogger.h"
+#include "Utils.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
 
 DisplayManager::DisplayManager(uint8_t sda_pin, uint8_t scl_pin)
-    : current_mode(0), device_count(0), packet_count(0), scan_count(0), last_update(0) {
+    : current_mode(0), device_count(0), packet_count(0), scan_count(0), last_update(0), current_font(nullptr) {
     // Initialize I2C with specific pins for Arduino Nano ESP32
     Wire.begin(sda_pin, scl_pin);
 
@@ -15,7 +16,7 @@ DisplayManager::DisplayManager(uint8_t sda_pin, uint8_t scl_pin)
 
 void DisplayManager::begin() {
     display->begin();
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);  // Use cached version
     display->setFontRefHeightExtendedText();
     display->setDrawColor(1);
     display->setFontPosTop();
@@ -25,7 +26,7 @@ void DisplayManager::begin() {
 
     // Splash screen: "Sniffy Boi..."
     display->clearBuffer();
-    display->setFont(u8g2_font_logisoso20_tf);  // Large 20px font
+    setFontCached(u8g2_font_logisoso20_tf);  // Large 20px font
 
     // Line 1: "Sniffy"
     const char* line1 = "Sniffy";
@@ -156,11 +157,11 @@ void DisplayManager::showBootMenu(uint8_t selection) {
     display->clearBuffer();
 
     // Title
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(15, 0);
     display->print("SELECT ENGINE");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     // Menu items - only show engines that exist
     const char* engines[] = {
@@ -191,11 +192,11 @@ void DisplayManager::showBootMenu(uint8_t selection) {
 void DisplayManager::showMessage(const String& title, const String& message) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->println(title);
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 20);
     display->println(message);
 
@@ -207,11 +208,11 @@ void DisplayManager::showMessage(const String& title, const String& message) {
 void DisplayManager::showRFScannerMenu(uint8_t selection) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(5, 0);
     display->print("RF SCANNER");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     const char* modes[] = {
         "Passive Scan",
@@ -250,11 +251,11 @@ void DisplayManager::showRFScannerMenu(uint8_t selection) {
 void DisplayManager::showRFScanStats(uint32_t packets, uint32_t devices, uint8_t channel, unsigned long runtime) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->print("RF SCAN");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     display->setCursor(0, 18);
     display->print("Packets: ");
@@ -281,11 +282,11 @@ void DisplayManager::showRFScanStats(uint32_t packets, uint32_t devices, uint8_t
 void DisplayManager::showNetworkAnalyzerMenu(uint8_t selection) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->print("NET ANALYZER");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     const char* modes[] = {
         "Passive Monitor",
@@ -318,11 +319,11 @@ void DisplayManager::showNetworkAnalyzerMenu(uint8_t selection) {
 void DisplayManager::showDNSStats(uint32_t queriesHandled, uint32_t queriesBlocked, unsigned long runtime) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->print("DNS SERVER");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     display->setCursor(0, 18);
     display->print("Queries: ");
@@ -349,11 +350,11 @@ void DisplayManager::showDNSStats(uint32_t queriesHandled, uint32_t queriesBlock
 void DisplayManager::showMITMStats(uint64_t bytesProcessed, uint32_t connections, unsigned long runtime) {
     display->clearBuffer();
 
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->print("MITM PROXY");
 
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
 
     display->setCursor(0, 18);
     display->print("Bytes: ");
@@ -388,7 +389,7 @@ void DisplayManager::showOperationalView(SystemLogger* logger) {
     display->clearBuffer();
 
     // Use ultra-small font for maximum information density
-    display->setFont(u8g2_font_tom_thumb_4x6_tf);
+    setFontCached(u8g2_font_tom_thumb_4x6_tf);
 
     uint8_t y = 0;
     const uint8_t lineHeight = 6;
@@ -520,12 +521,12 @@ void DisplayManager::showBootSequence(const String& component, const String& mes
     display->clearBuffer();
 
     // Boot header
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 10);
     display->print("BOOT");
 
     // Component name
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 25);
     display->print(component);
 
@@ -557,12 +558,12 @@ void DisplayManager::showWiFiStatus(const String& status, const String& detail, 
     display->clearBuffer();
 
     // Title
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 10);
     display->print("WiFi Setup");
 
     // Status line
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 25);
     display->print("Status: ");
     display->print(status);
@@ -595,10 +596,10 @@ void DisplayManager::showWiFiStatus(const String& status, const String& detail, 
 // ==================== PRIVATE METHODS ====================
 
 void DisplayManager::drawHeader() {
-    display->setFont(u8g2_font_7x13B_tf);
+    setFontCached(u8g2_font_7x13B_tf);
     display->setCursor(0, 0);
     display->print("ESP32");
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->drawLine(0, 12, 128, 12);
 }
 
@@ -638,7 +639,7 @@ void DisplayManager::showCommandExecuting(const String& command, int timeout_rem
     display->clearBuffer();
 
     // Title (large font)
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* title = command.c_str();
     int16_t titleWidth = display->getStrWidth(title);
     int16_t titleX = (128 - titleWidth) / 2;
@@ -649,7 +650,7 @@ void DisplayManager::showCommandExecuting(const String& command, int timeout_rem
     display->drawLine(0, 18, 128, 18);
 
     // Session timeout countdown (top right)
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 22);
     display->print("Timeout: ");
     display->print(timeout_remaining);
@@ -683,7 +684,7 @@ void DisplayManager::showCommandResult(const String& command, bool success, cons
     display->clearBuffer();
 
     // Success/Failure indicator (large)
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* status = success ? "SUCCESS" : "FAILED";
     int16_t statusWidth = display->getStrWidth(status);
     int16_t statusX = (128 - statusWidth) / 2;
@@ -691,7 +692,7 @@ void DisplayManager::showCommandResult(const String& command, bool success, cons
     display->print(status);
 
     // Command name
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 20);
     display->print("Cmd: ");
     display->print(command);
@@ -715,7 +716,7 @@ void DisplayManager::showConfigComparison(const String& setting, const String& o
     display->clearBuffer();
 
     // Title
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* title = setting.c_str();
     int16_t titleWidth = display->getStrWidth(title);
     int16_t titleX = (128 - titleWidth) / 2;
@@ -725,7 +726,7 @@ void DisplayManager::showConfigComparison(const String& setting, const String& o
     display->drawLine(0, 18, 128, 18);
 
     // OLD value
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 24);
     display->print("OLD: ");
     display->print(old_value);
@@ -733,11 +734,11 @@ void DisplayManager::showConfigComparison(const String& setting, const String& o
     // NEW value (highlighted)
     display->setCursor(0, 38);
     display->print("NEW: ");
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     display->print(new_value);
 
     // Countdown
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 55);
     display->print("Returning in ");
     display->print(countdown);
@@ -750,14 +751,14 @@ void DisplayManager::showCooldownResults(const String& title, const std::vector<
     display->clearBuffer();
 
     // Title
-    display->setFont(u8g2_font_7x13_tf);
+    setFontCached(u8g2_font_7x13_tf);
     display->setCursor(0, 0);
     display->print(title);
 
     display->drawLine(0, 12, 128, 12);
 
     // Results (up to 3 lines)
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     int y = 16;
     int max_lines = 3;
     for (int i = 0; i < results.size() && i < max_lines; i++) {
@@ -787,7 +788,7 @@ void DisplayManager::showErrorMessage(const String& error, const String& detail,
     display->clearBuffer();
 
     // ERROR header (large, centered)
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* errText = "ERROR";
     int16_t errWidth = display->getStrWidth(errText);
     int16_t errX = (128 - errWidth) / 2;
@@ -797,7 +798,7 @@ void DisplayManager::showErrorMessage(const String& error, const String& detail,
     display->drawLine(0, 18, 128, 18);
 
     // Error type
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 24);
     display->print(error);
 
@@ -825,7 +826,7 @@ void DisplayManager::showAwaitingValue(const String& setting, const String& curr
     display->clearBuffer();
 
     // Title
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* title = setting.c_str();
     int16_t titleWidth = display->getStrWidth(title);
     int16_t titleX = (128 - titleWidth) / 2;
@@ -835,7 +836,7 @@ void DisplayManager::showAwaitingValue(const String& setting, const String& curr
     display->drawLine(0, 18, 128, 18);
 
     // Current value
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 24);
     display->print("Current: ");
     display->print(current_value);
@@ -856,7 +857,7 @@ void DisplayManager::showSessionLocked(const uint8_t* authorized_mac) {
     display->clearBuffer();
 
     // Warning header
-    display->setFont(u8g2_font_9x15_tf);
+    setFontCached(u8g2_font_9x15_tf);
     const char* warning = "LOCKED";
     int16_t warnWidth = display->getStrWidth(warning);
     int16_t warnX = (128 - warnWidth) / 2;
@@ -866,29 +867,36 @@ void DisplayManager::showSessionLocked(const uint8_t* authorized_mac) {
     display->drawLine(0, 18, 128, 18);
 
     // Message
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 24);
     display->print("Session active");
 
     display->setCursor(0, 36);
     display->print("Authorized MAC:");
 
-    // MAC address
+    // MAC address - use unified utility
     char mac_str[18];
-    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
-             authorized_mac[0], authorized_mac[1], authorized_mac[2],
-             authorized_mac[3], authorized_mac[4], authorized_mac[5]);
+    Utils::macToString(authorized_mac, mac_str);
     display->setCursor(0, 48);
     display->print(mac_str);
 
     display->sendBuffer();
 }
 
+// ==================== Font Caching Helper ====================
+
+void DisplayManager::setFontCached(const uint8_t* font) {
+    if (font != current_font) {
+        display->setFont(font);
+        current_font = font;
+    }
+}
+
 void DisplayManager::showCommandMenu() {
     display->clearBuffer();
 
     // Header with blinking prompt
-    display->setFont(u8g2_font_6x10_tf);
+    setFontCached(u8g2_font_6x10_tf);
     display->setCursor(0, 0);
     display->print("SNIFFY:COMMAND");
 

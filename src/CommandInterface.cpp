@@ -1,12 +1,25 @@
 #include "CommandInterface.h"
+#include "Utils.h"
 
+// Magic packet configuration
 #define MAGIC_PREFIX "SNIFFY:"
 #define MAGIC_PREFIX_LEN 7
 
-#define SESSION_TIMEOUT 120000  // 2 minutes
-#define ERROR_DISPLAY_TIME 20000  // 20 seconds
-#define CONFIG_DISPLAY_TIME 10000  // 10 seconds
-#define COOLDOWN_TIME 60000  // 60 seconds
+// Timeout durations
+#define SESSION_TIMEOUT 120000        // 2 minutes - MAC session expires
+#define ERROR_DISPLAY_TIME 20000      // 20 seconds - Error shown on OLED
+#define CONFIG_DISPLAY_TIME 10000     // 10 seconds - Config change shown on OLED
+#define COOLDOWN_TIME 60000           // 60 seconds - Operation cooldown before IDLE
+
+// Operation durations
+#define SCAN_DURATION 15000           // 15 seconds - AP scan duration
+#define ATTACK_DURATION 10000         // 10 seconds - Attack monitoring duration
+#define PMKID_DURATION 10000          // 10 seconds - PMKID attack duration
+
+// Update intervals
+#define DISPLAY_UPDATE_INTERVAL 500   // 500ms - Display refresh during operations
+#define PROGRESS_UPDATE_INTERVAL 200  // 200ms - Progress bar animation speed
+#define MAIN_LOOP_DISPLAY_UPDATE 1000 // 1 second - Main loop display update
 
 CommandInterface::CommandInterface(PacketSniffer* sniffer, DisplayManager* display, SystemLogger* logger)
     : sniffer(sniffer),
@@ -113,8 +126,8 @@ void CommandInterface::loop() {
             break;
     }
 
-    // Update display periodically (every second)
-    if (millis() - last_display_update > 1000) {
+    // Update display periodically
+    if (millis() - last_display_update > MAIN_LOOP_DISPLAY_UPDATE) {
         updateDisplay();
         last_display_update = millis();
     }
@@ -658,7 +671,7 @@ void CommandInterface::handleBeacon(const Command& cmd) {
         progress += 20;
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
         display->showCommandExecuting("BEACON FLOOD", timeout_remaining, progress);
-        delay(100);
+        delay(PROGRESS_UPDATE_INTERVAL / 2);  // Faster animation for beacon flood
     }
 
     ledger->setState(CommandState::BEACON_COMPLETE);
@@ -731,16 +744,15 @@ void CommandInterface::executeScan() {
     // Simulate scanning progress (in real implementation, RFScanner fills this)
     // For now, we'll use existing device data from PacketSniffer
     unsigned long scan_start = millis();
-    unsigned long scan_duration = 15000;  // 15 seconds
 
-    while (millis() - scan_start < scan_duration) {
-        int progress = ((millis() - scan_start) * 100) / scan_duration;
+    while (millis() - scan_start < SCAN_DURATION) {
+        int progress = ((millis() - scan_start) * 100) / SCAN_DURATION;
         ledger->setOperationProgress(progress);
 
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
         display->showCommandExecuting("SCANNING", timeout_remaining, progress);
 
-        delay(500);
+        delay(DISPLAY_UPDATE_INTERVAL);
     }
 
     // Copy devices from PacketSniffer to ledger
@@ -767,12 +779,10 @@ void CommandInterface::executeAttack(const uint8_t* target_mac) {
 
     // Simulate attack progress
     unsigned long attack_start = millis();
-    unsigned long attack_duration = 10000;  // 10 seconds monitoring
-
     bool handshake_captured = false;
 
-    while (millis() - attack_start < attack_duration) {
-        int progress = ((millis() - attack_start) * 100) / attack_duration;
+    while (millis() - attack_start < ATTACK_DURATION) {
+        int progress = ((millis() - attack_start) * 100) / ATTACK_DURATION;
         ledger->setOperationProgress(progress);
 
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
@@ -783,7 +793,7 @@ void CommandInterface::executeAttack(const uint8_t* target_mac) {
         // For now, we'll check if handshakes exist for this target
         const auto& handshakes = sniffer->getHandshakes();
         for (const auto& hs : handshakes) {
-            if (memcmp(hs.ap_mac, target_mac, 6) == 0) {
+            if (Utils::macEquals(hs.ap_mac, target_mac)) {
                 handshake_captured = true;
                 break;
             }
@@ -791,7 +801,7 @@ void CommandInterface::executeAttack(const uint8_t* target_mac) {
 
         if (handshake_captured) break;
 
-        delay(500);
+        delay(DISPLAY_UPDATE_INTERVAL);
     }
 
     if (handshake_captured) {
@@ -809,16 +819,15 @@ void CommandInterface::executePMKID(const uint8_t* target_mac) {
 
     // Simulate progress
     unsigned long attack_start = millis();
-    unsigned long attack_duration = 10000;
 
-    while (millis() - attack_start < attack_duration) {
-        int progress = ((millis() - attack_start) * 100) / attack_duration;
+    while (millis() - attack_start < PMKID_DURATION) {
+        int progress = ((millis() - attack_start) * 100) / PMKID_DURATION;
         ledger->setOperationProgress(progress);
 
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
         display->showCommandExecuting("PMKID ATTACK", timeout_remaining, progress);
 
-        delay(500);
+        delay(DISPLAY_UPDATE_INTERVAL);
     }
 
     onPMKIDComplete(false, "Not implemented");
@@ -841,7 +850,7 @@ void CommandInterface::executeChannelChange(int channel) {
         progress += 25;
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
         display->showCommandExecuting("CHANNEL", timeout_remaining, progress);
-        delay(200);
+        delay(PROGRESS_UPDATE_INTERVAL);
     }
 
     onConfigChange("CHANNEL", old_val, String(channel));
@@ -862,7 +871,7 @@ void CommandInterface::executeHoppingToggle(bool enable) {
         progress += 25;
         int timeout_remaining = SESSION_TIMEOUT / 1000 - ((millis() - ledger->getSessionStartTime()) / 1000);
         display->showCommandExecuting("HOPPING", timeout_remaining, progress);
-        delay(200);
+        delay(PROGRESS_UPDATE_INTERVAL);
     }
 
     onConfigChange("HOPPING", old_val, enable ? "ON" : "OFF");
@@ -1035,33 +1044,20 @@ void CommandInterface::updateDisplay() {
 // ==================== Helper Functions ====================
 
 bool CommandInterface::parseMACAddress(const String& mac_str, uint8_t* mac_out) {
-    String cleaned = mac_str;
-    cleaned.replace(":", "");
-    cleaned.replace("-", "");
-    cleaned.toUpperCase();
-
-    if (cleaned.length() != 12) return false;
-
-    for (int i = 0; i < 6; i++) {
-        String byteStr = cleaned.substring(i * 2, i * 2 + 2);
-        mac_out[i] = (uint8_t)strtol(byteStr.c_str(), NULL, 16);
-    }
-
-    return true;
+    // Use unified MAC parsing utility
+    return Utils::stringToMAC(mac_str, mac_out);
 }
 
 void CommandInterface::printMACAddress(const uint8_t* mac) {
-    for (int i = 0; i < 6; i++) {
-        if (mac[i] < 0x10) Serial.print("0");
-        Serial.print(mac[i], HEX);
-        if (i < 5) Serial.print(":");
-    }
+    // Use unified MAC formatting utility
+    char buf[18];
+    Serial.print(Utils::macToString(mac, buf));
 }
 
 String CommandInterface::macToString(const uint8_t* mac) {
+    // Use unified MAC formatting utility
     char buf[18];
-    snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Utils::macToString(mac, buf);
     return String(buf);
 }
 

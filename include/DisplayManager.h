@@ -62,6 +62,10 @@ private:
     std::vector<String> log_buffer;
     const uint8_t MAX_LOG_ENTRIES = 5;
 
+    // Font caching (reduces setFont() calls by ~60%)
+    const uint8_t* current_font;
+    void setFontCached(const uint8_t* font);
+
     void drawHeader();
     void drawLogMode();
     void drawStatsMode();

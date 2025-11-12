@@ -1,4 +1,5 @@
 #include "CommandLedger.h"
+#include "Utils.h"
 
 CommandLedger::CommandLedger()
     : session_active(false),
@@ -314,25 +315,15 @@ void CommandLedger::clearError() {
 // Helper functions
 
 String CommandLedger::macToString(const uint8_t* mac) const {
+    // Use unified MAC formatting utility
     char buf[18];
-    snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Utils::macToString(mac, buf);
     return String(buf);
 }
 
 bool CommandLedger::stringToMAC(const String& str, uint8_t* mac) const {
-    String cleaned = str;
-    cleaned.replace(":", "");
-    cleaned.toUpperCase();
-
-    if (cleaned.length() != 12) return false;
-
-    for (int i = 0; i < 6; i++) {
-        String byteStr = cleaned.substring(i * 2, i * 2 + 2);
-        mac[i] = (uint8_t)strtol(byteStr.c_str(), NULL, 16);
-    }
-
-    return true;
+    // Use unified MAC parsing utility
+    return Utils::stringToMAC(str, mac);
 }
 
 String CommandLedger::stateToString(CommandState state) const {
